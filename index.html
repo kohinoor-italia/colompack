@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>BoxFinder – Calcolatore Dimensioni Scatole</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c14;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-bright: rgba(255, 255, 255, 0.18);
+  --accent: #4fc3f7;
+  --accent2: #a78bfa;
+  --accent3: #34d399;
+  --text: #e8edf5;
+  --text-muted: #7a8499;
+  --text-dim: #4a5268;
+  --glow: rgba(79, 195, 247, 0.15);
+  --glow2: rgba(167, 139, 250, 0.1);
+  --danger: #f87171;
+  --warn: #fbbf24;
+  --card-radius: 18px;
+  --input-radius: 12px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(79, 195, 247, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 100%, rgba(167, 139, 250, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(52, 211, 153, 0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px 60px;
+}
+
+/* ── Header ── */
+header {
+  padding: 40px 0 28px;
+  text-align: center;
+}
+
+.logo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 16px 6px 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  backdrop-filter: blur(10px);
+}
+
+.logo-chip .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.7); }
+}
+
+h1 {
+  font-size: clamp(1.8rem, 5vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  background: linear-gradient(135deg, #e8edf5 30%, var(--accent) 70%, var(--accent2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: clamp(0.82rem, 2vw, 0.95rem);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 5px;
+  backdrop-filter: blur(10px);
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  background: var(--surface-hover);
+  color: var(--accent);
+  box-shadow: 0 0 20px rgba(79, 195, 247, 0.1);
+}
+
+.tab-btn:hover:not(.active) { color: var(--text-muted); }
+
+/* ── Tab panels ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+/* ── Search Panel ── */
+.search-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 20px 60px rgba(0,0,0,0.4), 0 0 80px var(--glow);
+  position: relative;
+  overflow: hidden;
+}
+
+.search-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.4;
+}
+
+.panel-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.inputs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (max-width: 600px) {
+  .inputs-grid { grid-template-columns: repeat(3, 1fr); }
+  .search-btn-wrap { grid-column: 1 / -1; }
+}
+
+.input-group { display: flex; flex-direction: column; gap: 7px; }
+
+.input-group label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.required-star { color: var(--danger); margin-left: 2px; }
+
+.input-wrapper { position: relative; }
+
+input[type="number"] {
+  width: 100%;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--input-radius);
+  padding: 11px 40px 11px 13px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.95rem;
+  color: var(--text);
+  outline: none;
+  transition: all 0.2s ease;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+input[type="number"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,195,247,0.12), 0 0 20px rgba(79,195,247,0.08);
+  background: rgba(79,195,247,0.05);
+}
+
+input[type="number"]::placeholder { color: var(--text-dim); }
+
+input[type="number"].error-field {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(248,113,113,0.15) !important;
+  background: rgba(248,113,113,0.05) !important;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.unit {
+  position: absolute;
+  right: 11px; top: 50%;
+  transform: translateY(-50%);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+.search-btn {
+  background: linear-gradient(135deg, var(--accent), #0288d1);
+  border: none;
+  border-radius: var(--input-radius);
+  padding: 12px 22px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #080c14;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(79,195,247,0.3);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  justify-content: center;
+}
+
+.search-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(79,195,247,0.45); }
+.search-btn:active { transform: translateY(0); }
+
+/* Options row */
+.options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  align-items: center;
+}
+
+.options-row .section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.info-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.3);
+  border-radius: 100px;
+  padding: 6px 13px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--accent3);
+  letter-spacing: 0.06em;
+  user-select: none;
+}
+
+.toggle-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 13px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+  letter-spacing: 0.06em;
+}
+
+.toggle-chip:hover { border-color: var(--border-bright); color: var(--text); }
+
+.toggle-chip.active {
+  background: rgba(79,195,247,0.1);
+  border-color: rgba(79,195,247,0.4);
+  color: var(--accent);
+}
+
+.toggle-chip input[type="checkbox"] { display: none; }
+
+.chip-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: background 0.18s ease;
+  flex-shrink: 0;
+}
+
+.toggle-chip.active .chip-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+.limit-input {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 13px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  width: 66px;
+  outline: none;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.limit-input::-webkit-outer-spin-button,
+.limit-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.limit-input:focus { border-color: var(--accent); }
+
+/* Error message */
+.error-msg {
+  display: none;
+  background: rgba(248,113,113,0.06);
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  color: #fca5a5;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+.error-msg.visible { display: block; animation: fadeIn 0.2s ease; }
+
+/* ── Stats bar ── */
+.stats-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  animation: fadeIn 0.3s ease;
+}
+
+.stat-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.stat-pill strong { color: var(--accent); font-weight: 500; }
+
+/* ── Results ── */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 13px;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Result Card ── */
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 18px;
+  backdrop-filter: blur(20px);
+  cursor: pointer;
+  transition: all 0.22s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, var(--glow), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.result-card:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px var(--glow);
+}
+
+.result-card:hover::before { opacity: 1; }
+
+.result-card.rank-1 { border-color: rgba(79,195,247,0.35); box-shadow: 0 0 30px rgba(79,195,247,0.08); }
+.result-card.rank-2 { border-color: rgba(167,139,250,0.25); }
+.result-card.rank-3 { border-color: rgba(52,211,153,0.2); }
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.rank-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 100px;
+  border: 1px solid;
+}
+
+.rank-1 .rank-badge { color: var(--accent); border-color: rgba(79,195,247,0.4); background: rgba(79,195,247,0.1); }
+.rank-2 .rank-badge { color: var(--accent2); border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.1); }
+.rank-3 .rank-badge { color: var(--accent3); border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.1); }
+.result-card:not(.rank-1):not(.rank-2):not(.rank-3) .rank-badge { color: var(--text-dim); border-color: var(--border); }
+
+.model-code {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.dims-display {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
+}
+
+.dim-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.dim-sep { color: var(--text-dim); font-size: 0.95rem; }
+
+.dim-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.dims-unit {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  align-self: flex-end;
+  padding-bottom: 2px;
+}
+
+/* Fit bars */
+.fit-bars { display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 1; }
+
+.fit-row { display: flex; align-items: center; gap: 7px; }
+
+.fit-axis {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.fit-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.fit-fill { height: 100%; border-radius: 100px; transition: width 0.5s ease; }
+.fit-ok { background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+.fit-tight { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.fit-over { background: var(--danger); }
+
+.fit-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 52px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.fit-num.ok { color: var(--accent3); }
+.fit-num.tight { color: #fbbf24; }
+.fit-num.over { color: var(--danger); }
+
+/* Card footer */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vol-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.vol-badge strong { color: var(--text-muted); font-weight: 500; }
+
+.excess-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.excess-badge.good { color: var(--accent3); border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); }
+.excess-badge.ok { color: var(--accent); border-color: rgba(79,195,247,0.3); background: rgba(79,195,247,0.08); }
+.excess-badge.much { color: #fbbf24; border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.08); }
+.excess-badge.over { color: var(--danger); border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); }
+
+.adjustable-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--accent2);
+  border: 1px solid rgba(167,139,250,0.3);
+  background: rgba(167,139,250,0.08);
+  border-radius: 100px;
+  padding: 3px 8px;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 70px 20px;
+  animation: fadeIn 0.4s ease;
+}
+
+.empty-icon { font-size: 2.8rem; margin-bottom: 14px; opacity: 0.3; }
+.empty-title { font-size: 1.1rem; font-weight: 700; color: var(--text-muted); margin-bottom: 7px; }
+.empty-sub { font-size: 0.84rem; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+
+/* ── Welcome state ── */
+.welcome-state { text-align: center; padding: 50px 20px; }
+
+.welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 28px;
+  text-align: left;
+}
+
+.welcome-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  backdrop-filter: blur(10px);
+}
+
+.welcome-stat .ws-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+
+.welcome-stat .ws-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+}
+
+.highlight { color: var(--accent); }
+
+/* ── Name Search Tab ── */
+.name-search-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 22px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.name-search-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  opacity: 0.4;
+}
+
+.name-search-input {
+  width: 100%;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--input-radius);
+  padding: 13px 18px;
+  font-family: 'DM Mono', monospace;
+  font-size: 1rem;
+  color: var(--text);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.name-search-input:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px rgba(167,139,250,0.12);
+  background: rgba(167,139,250,0.04);
+}
+
+.name-search-input::placeholder { color: var(--text-dim); }
+
+.name-results-list { display: flex; flex-direction: column; gap: 8px; }
+
+.name-result-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.18s ease;
+  flex-wrap: wrap;
+}
+
+.name-result-row:hover { border-color: var(--border-bright); background: var(--surface-hover); }
+
+.nrr-code {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-weight: 500;
+  min-width: 130px;
+}
+
+.nrr-dims {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.88rem;
+  color: var(--text);
+  flex: 1;
+}
+
+.nrr-purpose {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.nrr-vol {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Full List Tab ── */
+.family-section { margin-bottom: 28px; }
+
+.family-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.family-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 100px;
+  border: 1px solid;
+}
+
+.family-CP { color: var(--accent); border-color: rgba(79,195,247,0.4); background: rgba(79,195,247,0.08); }
+.family-FT { color: var(--accent2); border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.08); }
+.family-SAWP { color: var(--accent3); border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
+
+.family-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.list-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.list-item:hover { border-color: var(--border-bright); background: var(--surface-hover); }
+
+.li-code {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.li-dims {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+.li-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.li-purpose {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.71rem;
+  color: var(--text-dim);
+}
+
+.li-vol {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.71rem;
+  color: var(--text-muted);
+}
+
+.li-adj {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--accent2);
+  margin-top: 2px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+@media (max-width: 500px) {
+  .results-grid { grid-template-columns: 1fr; }
+  .list-grid { grid-template-columns: 1fr; }
+  .search-panel, .name-search-panel { padding: 16px; }
+  header { padding: 28px 0 20px; }
+  .tabs { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-chip"><span class="dot"></span>KOH-I-NOOR BoxFinder v2.0</div>
+    <h1>Calcolatore<br>Dimensioni Scatole</h1>
+    <p class="subtitle">ColomPac · Database completo · Trova il formato ideale</p>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('search')">🔍 Cerca per dimensioni</button>
+    <button class="tab-btn" onclick="switchTab('name')">🏷 Cerca per codice/nome</button>
+    <button class="tab-btn" onclick="switchTab('list')">📋 Lista completa</button>
+  </div>
+
+  <!-- ══ TAB 1: Dimensioni ══ -->
+  <div class="tab-panel active" id="tab-search">
+    <div class="search-panel">
+      <div class="panel-label">// Dimensioni richieste -- tutti i campi sono obbligatori</div>
+      <div class="inputs-grid">
+        <div class="input-group">
+          <label>Lunghezza <span class="required-star">*</span></label>
+          <div class="input-wrapper">
+            <input type="number" id="inp-l" placeholder="es. 300" min="0" step="1">
+            <span class="unit">mm</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Larghezza <span class="required-star">*</span></label>
+          <div class="input-wrapper">
+            <input type="number" id="inp-w" placeholder="es. 200" min="0" step="1">
+            <span class="unit">mm</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Altezza <span class="required-star">*</span></label>
+          <div class="input-wrapper">
+            <input type="number" id="inp-h" placeholder="es. 150" min="0" step="1">
+            <span class="unit">mm</span>
+          </div>
+        </div>
+        <div class="search-btn-wrap">
+          <button class="search-btn" onclick="doSearch()">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l3.5 3.5"/>
+            </svg>
+            Cerca
+          </button>
+        </div>
+      </div>
+
+      <div class="options-row">
+        <span class="section-label">Rotazione:</span>
+        <div class="info-chip">✂ Rotazione L/W sempre attiva</div>
+        <span class="section-label" style="margin-left:8px">Filtro:</span>
+        <label class="toggle-chip" id="chip-fit">
+          <input type="checkbox" id="opt-fit">
+          <span class="chip-dot"></span>
+          Solo scatole capienti
+        </label>
+        <span class="section-label" style="margin-left:4px">Max:</span>
+        <input type="number" class="limit-input" id="opt-limit" value="20" min="1" max="200">
+      </div>
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <div id="results-area">
+      <div class="welcome-state">
+        <div class="empty-icon">📦</div>
+        <div class="empty-title">Database ColomPac caricato</div>
+        <p class="empty-sub">Inserisci le 3 dimensioni e premi <span class="highlight">Cerca</span></p>
+        <div class="welcome-grid" id="welcome-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB 2: Denumire ══ -->
+  <div class="tab-panel" id="tab-name">
+    <div class="name-search-panel">
+      <div class="panel-label">// Cerca per codice della scatola</div>
+      <input type="text" class="name-search-input" id="name-search" placeholder="es. CP 035, FT, SAWP 181, CP 067..." oninput="doNameSearch()">
+    </div>
+    <div id="name-results"></div>
+  </div>
+
+  <!-- ══ TAB 3: Lista completă ══ -->
+  <div class="tab-panel" id="tab-list">
+    <div id="full-list"></div>
+  </div>
+
+</div>
+
+<script>
+const BOXES = [
+  { code:'CP 010.01', purpose:'', l:150, w:250, h:50 },
+  { code:'CP 010.02', purpose:'B5', l:185, w:270, h:50 },
+  { code:'CP 010.03', purpose:'A4', l:215, w:300, h:50 },
+  { code:'CP 010.04', purpose:'A4+', l:235, w:340, h:35 },
+  { code:'CP 010.54 W', purpose:'A4+', l:235, w:340, h:35 },
+  { code:'CP 010.84', purpose:'', l:235, w:340, h:72 },
+  { code:'CP 010.05', purpose:'', l:250, w:340, h:50 },
+  { code:'CP 010.06', purpose:'B4', l:250, w:360, h:50 },
+  { code:'CP 010.07', purpose:'', l:290, w:400, h:50 },
+  { code:'CP 010.08', purpose:'A3', l:340, w:500, h:50 },
+  { code:'CP 010.09', purpose:'', l:570, w:420, h:50 },
+  { code:'CP 010.10', purpose:'B2', l:530, w:720, h:50 },
+  { code:'CP 012.00', purpose:'', l:160, w:175, h:30 },
+  { code:'CP 012.01', purpose:'C5', l:170, w:245, h:30 },
+  { code:'CP 012.02', purpose:'', l:210, w:265, h:30 },
+  { code:'CP 012.03', purpose:'C4', l:235, w:310, h:30 },
+  { code:'CP 012.04', purpose:'C4', l:245, w:345, h:30 },
+  { code:'CP 012.05', purpose:'', l:260, w:345, h:30 },
+  { code:'CP 012.06', purpose:'', l:285, w:370, h:30 },
+  { code:'CP 012.07', purpose:'', l:310, w:445, h:30 },
+  { code:'CP 015.02', purpose:'B5', l:270, w:185, h:30 },
+  { code:'CP 015.04', purpose:'A4+', l:340, w:235, h:30 },
+  { code:'CP 015.06', purpose:'B4', l:360, w:250, h:30 },
+  { code:'CP 015.07', purpose:'', l:400, w:285, h:30 },
+  { code:'CP 017.01', purpose:'A5', l:227, w:160, h:30 },
+  { code:'CP 017.02', purpose:'C5', l:248, w:174, h:30 },
+  { code:'CP 017.03', purpose:'', l:322, w:227, h:30 },
+  { code:'CP 017.04', purpose:'', l:351, w:248, h:30 },
+  { code:'CP 020.01', purpose:'1-5 CDs', l:147, w:126, h:55 },
+  { code:'CP 020.02', purpose:'A5', l:217, w:155, h:60 },
+  { code:'CP 020.04', purpose:'', l:251, w:165, h:60 },
+  { code:'CP 020.06', purpose:'B5', l:270, w:190, h:80 },
+  { code:'CP 020.08', purpose:'A4', l:302, w:215, h:80 },
+  { code:'CP 021.09', purpose:'A4', l:307, w:245, h:75 },
+  { code:'CP 020.12', purpose:'', l:325, w:250, h:80 },
+  { code:'CP 020.14', purpose:'', l:330, w:270, h:80 },
+  { code:'CP 020.17', purpose:'', l:380, w:290, h:80 },
+  { code:'CP 020.18', purpose:'', l:455, w:320, h:70 },
+  { code:'CP 030.03', purpose:'A4', l:310, w:220, h:92 },
+  { code:'CP 030.04', purpose:'', l:325, w:260, h:92 },
+  { code:'CP 030.05', purpose:'Raccoglitore', l:322, w:292, hMin:35, hMax:80, adjustable:true },
+  { code:'CP 030.06', purpose:'B4', l:360, w:265, h:92 },
+  { code:'CP 030.07', purpose:'C3', l:465, w:330, h:92 },
+  { code:'CP 030.08', purpose:'LPs', l:320, w:320, h:60 },
+  { code:'CP 035.01', purpose:'A5', l:230, w:165, h:70 },
+  { code:'CP 035.02', purpose:'B5', l:250, w:190, h:85 },
+  { code:'CP 035.03', purpose:'A4', l:305, w:230, h:92 },
+  { code:'CP 035.04', purpose:'B4', l:350, w:260, h:70 },
+  { code:'CP 035.05', purpose:'', l:350, w:320, h:80 },
+  { code:'CP 035.06', purpose:'A3', l:430, w:310, hMin:90, hMax:150, adjustable:true },
+  { code:'CP 037.52', purpose:'B5', l:250, w:190, h:75 },
+  { code:'CP 037.53', purpose:'A4', l:305, w:230, h:92 },
+  { code:'CP 037.54', purpose:'', l:350, w:260, h:70 },
+  { code:'CP 042.11', purpose:'DL', l:225, w:125, h:12 },
+  { code:'CP 050.01', purpose:'Raccoglitore', l:320, w:290, hMin:35, hMax:80, adjustable:true },
+  { code:'CP 055.01', purpose:'Raccoglitore', l:320, w:290, hMin:35, hMax:80, adjustable:true },
+  { code:'CP 055.51 W', purpose:'Raccoglitore', l:320, w:290, hMin:35, hMax:80, adjustable:true },
+  { code:'CP 065.52', purpose:'', l:139, w:216, h:29 },
+  { code:'CP 065.55', purpose:'C4', l:244, w:344, h:15 },
+  { code:'CP 065.56', purpose:'C4', l:244, w:344, h:45 },
+  { code:'CP 065.59', purpose:'C4', l:244, w:344, h:28 },
+  { code:'CP 065.89 B', purpose:'', l:244, w:332, h:69 },
+  { code:'CP 066.02', purpose:'A5', l:215, w:155, h:43 },
+  { code:'CP 066.04', purpose:'A4', l:300, w:212, h:43 },
+  { code:'CP 067.02', purpose:'C5', l:230, w:166, h:90 },
+  { code:'CP 067.04', purpose:'A4', l:305, w:212, h:110 },
+  { code:'CP 067.06', purpose:'2 Raccoglitori', l:330, w:290, h:120 },
+  { code:'CP 067.07', purpose:'', l:460, w:310, h:160 },
+  { code:'CP 068.92', purpose:'stampato', l:241, w:166, h:94 },
+  { code:'CP 068.96', purpose:'stampato', l:363, w:290, h:125 },
+  { code:'CP 069.02', purpose:'S', l:282, w:191, h:90 },
+  { code:'CP 069.04', purpose:'M', l:282, w:191, h:140 },
+  { code:'CP 069.06', purpose:'L (C4)', l:336, w:242, h:140 },
+  { code:'CP 069.08', purpose:'XL', l:384, w:290, h:190 },
+  { code:'CP 070.02', purpose:'A2', l:430, w:105, h:75 },
+  { code:'CP 070.04', purpose:'A1', l:610, w:105, h:75 },
+  { code:'CP 070.05', purpose:'', l:705, w:105, h:75 },
+  { code:'CP 070.06', purpose:'A0', l:860, w:105, h:75 },
+  { code:'CP 070.08', purpose:'', l:1005, w:105, h:75 },
+  { code:'CP 072.02', purpose:'A2', l:430, w:108, h:108 },
+  { code:'CP 072.04', purpose:'A1', l:610, w:108, h:108 },
+  { code:'CP 072.05', purpose:'', l:705, w:108, h:108 },
+  { code:'CP 072.06', purpose:'A0', l:860, w:108, h:108 },
+  { code:'CP 072.08', purpose:'B0', l:1008, w:108, h:108 },
+  { code:'CP 073.060-AT', purpose:'', l:604, w:115, h:115 },
+  { code:'CP 073.100-IT', purpose:'', l:1060, w:108, h:108 },
+  { code:'CP 080.02', purpose:'', l:140, w:101, h:43 },
+  { code:'CP 080.04', purpose:'', l:192, w:155, h:43 },
+  { code:'CP 080.05 CH', purpose:'', l:240, w:170, h:45 },
+  { code:'CP 080.06', purpose:'', l:192, w:155, h:91 },
+  { code:'CP 080.08', purpose:'A4', l:305, w:210, h:91 },
+  { code:'CP 080.09', purpose:'', l:335, w:244, h:44 },
+  { code:'CP 080.89', purpose:'', l:335, w:244, h:74 },
+  { code:'CP 085.201710', purpose:'EE-Flute', l:184, w:153, h:71 },
+  { code:'CP 085.221212', purpose:'FE-Flute', l:215, w:115, h:100 },
+  { code:'CP 085.411615', purpose:'EE-Flute', l:394, w:154, h:128 },
+  { code:'CP 085.292215', purpose:'EE-Flute', l:280, w:208, h:130 },
+  { code:'CP 121.050 b/l', purpose:'A4', l:305, w:215, h:50 },
+  { code:'CP 121.101 b/l', purpose:'A4', l:305, w:215, h:100 },
+  { code:'CP 121.150 b/l', purpose:'A4', l:305, w:215, h:150 },
+  { code:'CP 131.201', purpose:'A4', l:305, w:215, hMin:110, hMax:200, adjustable:true },
+  { code:'CP 140.004', purpose:'Notebook 17"', l:490, w:412, h:109 },
+  { code:'FT 140.110', purpose:'A5 (CP151.110)', l:122, w:81, h:75 },
+  { code:'FT 140.116', purpose:'A5 (CP151.116)', l:139, w:88, h:46 },
+  { code:'FT 140.150', purpose:'CP 151.150', l:220, w:170, h:90 },
+  { code:'CP 141.101', purpose:'A5', l:229, w:164, hMin:50, hMax:115, adjustable:true },
+  { code:'CP 141.201', purpose:'A4', l:304, w:216, hMin:130, hMax:220, adjustable:true },
+  { code:'CP 141.205', purpose:'A4', l:305, w:228, hMin:70, hMax:160, adjustable:true },
+  { code:'CP 141.208', purpose:'A4', l:344, w:290, hMin:32, hMax:132, adjustable:true },
+  { code:'CP 141.301', purpose:'', l:445, w:315, hMin:180, hMax:300, adjustable:true },
+  { code:'CP 151.010', purpose:'', l:159, w:129, h:70 },
+  { code:'CP 151.110', purpose:'A5', l:213, w:153, h:109 },
+  { code:'CP 151.115', purpose:'A5', l:230, w:160, h:50 },
+  { code:'CP 151.116', purpose:'A5', l:230, w:160, h:80 },
+  { code:'CP 151.118', purpose:'A5', l:230, w:160, h:125 },
+  { code:'CP 151.150', purpose:'', l:260, w:220, h:130 },
+  { code:'CP 151.328', purpose:'', l:340, w:239, h:64 },
+  { code:'CP 151.302020', purpose:'EE-Flute', l:285, w:192, h:185 },
+  { code:'CP 151.403030', purpose:'EE-Flute', l:385, w:292, h:285 },
+  { code:'CP 151.604015', purpose:'EE-Flute', l:585, w:392, h:150 },
+  { code:'CP 151.604030', purpose:'EE-Flute', l:585, w:392, h:300 },
+  { code:'CP 154.151015', purpose:'E-Flute', l:145, w:95, h:140 },
+  { code:'CP 154.201010', purpose:'E-Flute', l:195, w:95, h:90 },
+  { code:'CP 154.201510', purpose:'E-Flute', l:195, w:145, h:90 },
+  { code:'CP 154.201515', purpose:'E-Flute', l:195, w:145, h:140 },
+  { code:'CP 154.201520', purpose:'E-Flute', l:195, w:145, h:190 },
+  { code:'CP 154.202010', purpose:'B-Flute', l:194, w:194, h:87 },
+  { code:'CP 154.202020', purpose:'B-Flute', l:194, w:194, h:187 },
+  { code:'CP 154.202040', purpose:'B-Flute', l:194, w:194, h:387 },
+  { code:'CP 154.301015', purpose:'B-Flute', l:294, w:94, h:137 },
+  { code:'CP 154.301030', purpose:'B-Flute', l:294, w:94, h:287 },
+  { code:'CP 154.301040', purpose:'B-Flute', l:294, w:94, h:387 },
+  { code:'CP 154.302010', purpose:'B-Flute', l:294, w:194, h:87 },
+  { code:'CP 154.302015', purpose:'B-Flute', l:294, w:194, h:137 },
+  { code:'CP 154.302020', purpose:'B-Flute', l:294, w:194, h:187 },
+  { code:'CP 154.302030', purpose:'B-Flute', l:294, w:194, h:287 },
+  { code:'CP 154.302040', purpose:'B-Flute', l:294, w:194, h:387 },
+  { code:'CP 154.401010', purpose:'B-Flute', l:394, w:94, h:87 },
+  { code:'CP 154.401040', purpose:'B-Flute', l:394, w:94, h:387 },
+  { code:'CP 154.401510', purpose:'B-Flute', l:394, w:144, h:87 },
+  { code:'CP 154.401515', purpose:'B-Flute', l:394, w:144, h:137 },
+  { code:'CP 154.401520', purpose:'B-Flute', l:394, w:144, h:187 },
+  { code:'CP 154.401530', purpose:'B-Flute', l:394, w:144, h:287 },
+  { code:'CP 154.401540', purpose:'B-Flute', l:394, w:144, h:387 },
+  { code:'CP 154.402010', purpose:'B-Flute', l:394, w:194, h:87 },
+  { code:'CP 154.402040', purpose:'B-Flute', l:394, w:194, h:387 },
+  { code:'CP 154.403030', purpose:'B-Flute', l:394, w:294, h:287 },
+  { code:'CP 154.403040', purpose:'B-Flute', l:394, w:294, h:387 },
+  { code:'CP 154.404040', purpose:'B-Flute', l:394, w:394, h:387 },
+  { code:'CP 154.604010', purpose:'100', l:570, w:382, h:94 },
+  { code:'CP 154.604020', purpose:'200', l:563, w:382, h:191 },
+  { code:'CP 154.604030', purpose:'300', l:563, w:382, h:282 },
+  { code:'CP 154.604001', purpose:'Coperchio', l:577, w:389, h:97 },
+  { code:'CP 155.155', purpose:'B-Flute', l:184, w:149, h:127 },
+  { code:'CP 155.255', purpose:'B-Flute', l:306, w:186, h:127 },
+  { code:'CP 155.356', purpose:'B-Flute', l:389, w:324, h:160 },
+  { code:'CP 155.456', purpose:'B-Flute', l:389, w:324, h:320 },
+  { code:'CP 159.563716', purpose:'B-Flute', l:550, w:365, h:155 },
+  { code:'CP 159.563731', purpose:'B-Flute', l:550, w:365, h:310 },
+  { code:'CP 164.242510', purpose:'', l:231, w:239, h:95 },
+  { code:'CP 164.453890', purpose:'', l:445, w:379, h:80 },
+  { code:'CP 164.453814', purpose:'', l:445, w:379, h:130 },
+  { code:'CP 164.453819', purpose:'', l:445, w:379, h:195 },
+  { code:'CP 181.101', purpose:'1 bottiglia', l:305, w:74, h:74 },
+  { code:'CP 181.006', purpose:'3/6 bottiglie', l:375, w:365, h:250 },
+  { code:'SAWP 181.201', purpose:'1 bottiglia', l:89, w:89, h:360 },
+  { code:'SAWP 181.202', purpose:'2 bottiglie', l:178, w:89, h:360 },
+  { code:'SAWP 181.203', purpose:'3 bottiglie', l:267, w:89, h:360 },
+].map(b => {
+  if (b.adjustable) b.h = b.hMin;
+  if (b.h === undefined) b.h = 0;
+  return b;
+});
+
+function getFamily(code) {
+  if (code.startsWith('FT')) return 'FT';
+  if (code.startsWith('SAWP')) return 'SAWP';
+  return 'CP';
+}
+
+function boxVolume(b) {
+  const effectiveH = b.adjustable ? (b.hMax || b.h) : b.h;
+  return b.l * b.w * (effectiveH || 1);
+}
+
+function fmtVol(v) {
+  return (v / 1e6).toFixed(2) + ' cm³';
+}
+
+function dimStr(b) {
+  if (b.adjustable) return `${b.l}×${b.w}×${b.hMin}–${b.hMax}`;
+  if (b.h > 0) return `${b.l}×${b.w}×${b.h}`;
+  return `${b.l}×${b.w}`;
+}
+
+document.querySelectorAll('.toggle-chip').forEach(chip => {
+  const inp = chip.querySelector('input');
+  if (!inp) return;
+  inp.addEventListener('change', () => chip.classList.toggle('active', inp.checked));
+});
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.tab-btn')[['search','name','list'].indexOf(tab)].classList.add('active');
+
+  if (tab === 'name' && !document.getElementById('name-results').innerHTML) doNameSearch();
+  if (tab === 'list' && !document.getElementById('full-list').innerHTML) renderFullList();
+}
+
+function renderWelcomeStats() {
+  const families = { CP: 0, FT: 0, SAWP: 0 };
+  BOXES.forEach(b => { families[getFamily(b.code)]++; });
+  const adj = BOXES.filter(b => b.adjustable).length;
+  document.getElementById('welcome-stats').innerHTML = [
+    { num: BOXES.length, label: 'Modelli totali' },
+    { num: families.CP, label: 'Scatole CP' },
+    { num: families.FT, label: 'Fogli/Vassoi FT' },
+    { num: families.SAWP, label: 'SAWP' },
+    { num: adj, label: 'Altezza regolabile' },
+  ].map(s => `<div class="welcome-stat"><div class="ws-num">${s.num}</div><div class="ws-label">${s.label}</div></div>`).join('');
+}
+
+function doSearch() {
+  const lVal = document.getElementById('inp-l').value.trim();
+  const wVal = document.getElementById('inp-w').value.trim();
+  const hVal = document.getElementById('inp-h').value.trim();
+
+  const lInp = document.getElementById('inp-l');
+  const wInp = document.getElementById('inp-w');
+  const hInp = document.getElementById('inp-h');
+  const errEl = document.getElementById('error-msg');
+
+  [lInp, wInp, hInp].forEach(el => el.classList.remove('error-field'));
+  errEl.classList.remove('visible');
+
+  let hasError = false;
+  const missing = [];
+
+  if (!lVal || parseFloat(lVal) <= 0) { lInp.classList.add('error-field'); missing.push('Lunghezza'); hasError = true; }
+  if (!wVal || parseFloat(wVal) <= 0) { wInp.classList.add('error-field'); missing.push('Larghezza'); hasError = true; }
+  if (!hVal || parseFloat(hVal) <= 0) { hInp.classList.add('error-field'); missing.push('Altezza'); hasError = true; }
+
+  if (hasError) {
+    errEl.innerHTML = `⚠ Campi obbligatori mancanti: <strong>${missing.join(', ')}</strong>.<br>Inserisci tutte e 3 le dimensioni per avviare la ricerca.`;
+    errEl.classList.add('visible');
+    return;
+  }
+
+  const l = parseFloat(lVal);
+  const w = parseFloat(wVal);
+  const h = parseFloat(hVal);
+  const onlyFit = document.getElementById('opt-fit').checked;
+  const limit = parseInt(document.getElementById('opt-limit').value) || 20;
+
+  let scored = BOXES.map(box => scoreBox(box, l, w, h)).filter(Boolean);
+  if (onlyFit) scored = scored.filter(s => !s.anyOver);
+  scored.sort((a, b) => a.score - b.score);
+
+  renderResults(scored.slice(0, limit), l, w, h, scored.length, onlyFit);
+}
+
+function scoreBox(box, l, w, h) {
+  let effectiveH = box.h;
+  let usedHMin = false;
+
+  if (box.adjustable) {
+    if (h >= box.hMin && h <= box.hMax) {
+      effectiveH = h;
+    } else if (h < box.hMin) {
+      effectiveH = box.hMin;
+      usedHMin = true;
+    } else {
+      effectiveH = box.hMax;
+    }
+  }
+
+  const orientations = [
+    [box.l, box.w, effectiveH],
+    [box.w, box.l, effectiveH],
+  ];
+
+  let best = null;
+  let minExcess = Infinity;
+
+  for (const [bl, bw, bh] of orientations) {
+    const dL = bl - l;
+    const dW = bw - w;
+    const dH = bh > 0 ? bh - h : 0;
+    const anyOver = dL < 0 || dW < 0 || (bh > 0 && dH < 0);
+    const excess = Math.abs(dL) + Math.abs(dW) + Math.abs(dH);
+    if (!best || (!anyOver && (best.anyOver || excess < minExcess)) || (anyOver && best.anyOver && excess < minExcess)) {
+      best = { bl, bw, bh, dL, dW, dH, anyOver };
+      minExcess = excess;
+    }
+  }
+
+  const { bl, bw, bh, dL, dW, dH, anyOver } = best;
+  const boxVol = bl * bw * (bh || 1);
+  const penalty = anyOver ? 1e20 : 0;
+
+  return { box, score: penalty + boxVol, bl, bw, bh, dL, dW, dH, anyOver, volRatio: boxVol / (l * w * h), effectiveH, usedHMin };
+}
+
+function renderResults(results, l, w, h, total, onlyFit) {
+  const area = document.getElementById('results-area');
+
+  if (results.length === 0) {
+    area.innerHTML = `
+      <div class="no-results-info">Nessun risultato con i filtri correnti.<br>Disattiva "Solo scatole capienti" per vedere anche le scatole parzialmente compatibili.</div>
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Nessuna scatola adatta</div>
+        <div class="empty-sub">Prova a modificare le dimensioni</div>
+      </div>`;
+    return;
+  }
+
+  const statsBar = `
+    <div class="stats-bar">
+      <div class="stat-pill">Totale DB: <strong>${BOXES.length}</strong></div>
+      <div class="stat-pill">Trovate: <strong>${total}</strong></div>
+      <div class="stat-pill">Mostrate: <strong>${results.length}</strong></div>
+      <div class="stat-pill">Richiesto: <strong>${l}×${w}×${h} mm</strong></div>
+    </div>`;
+
+  const cards = results.map((r, i) => renderCard(r, i, l, w, h)).join('');
+
+  area.innerHTML = `${statsBar}
+    <div class="results-header" style="margin-bottom:14px">
+      <span style="font-size:0.85rem;font-weight:700;color:var(--text-muted)">Ordinate per volume minimo (la più adatta per prima)</span>
+    </div>
+    <div class="results-grid">${cards}</div>`;
+}
+
+function renderCard(r, idx, l, w, h) {
+  const { box, bl, bw, bh, dL, dW, dH, anyOver, volRatio, usedHMin } = r;
+  const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : '';
+  const rankText = idx === 0 ? '#1 Ottimale' : `#${idx+1}`;
+
+  const bars = [];
+  bars.push(makeFitBar('L', l, bl, dL));
+  bars.push(makeFitBar('W', w, bw, dW));
+  if (bh > 0) bars.push(makeFitBar('H', h, bh, dH));
+
+  let excessClass = 'good', excessText = '';
+  if (anyOver) {
+    excessClass = 'over'; excessText = '⚠ Non entra';
+  } else if (volRatio < 1.3) {
+    excessClass = 'good'; excessText = `+${((volRatio-1)*100).toFixed(0)}% vol`;
+  } else if (volRatio < 2.5) {
+    excessClass = 'ok'; excessText = `+${((volRatio-1)*100).toFixed(0)}% vol`;
+  } else {
+    excessClass = 'much'; excessText = `+${((volRatio-1)*100).toFixed(0)}% vol`;
+  }
+
+  const vol = fmtVol(bl * bw * (bh || 1));
+  let adjBadge = '';
+  if (box.adjustable) {
+    let adjText = `✂ Altezza regolabile: ${box.hMin}–${box.hMax} mm`;
+    if (usedHMin) adjText += ` · ridotta al min`;
+    adjBadge = `<div class="adjustable-badge">${adjText}</div>`;
+  }
+
+  const purposeHtml = box.purpose ? `<span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:0.1em">${box.purpose}</span>` : '';
+
+  return `
+    <div class="result-card ${rankClass}">
+      <div class="card-top">
+        <div class="rank-badge">${rankText}</div>
+        <div style="text-align:right">
+          <div class="model-code">${box.code}</div>
+          ${purposeHtml}
+        </div>
+      </div>
+      <div class="dims-display">
+        <div><div class="dim-val">${bl}</div><div class="dim-label">L</div></div>
+        <div class="dim-sep">×</div>
+        <div><div class="dim-val">${bw}</div><div class="dim-label">W</div></div>
+        ${bh > 0 ? `<div class="dim-sep">×</div><div><div class="dim-val">${bh}</div><div class="dim-label">H</div></div>` : ''}
+        <div class="dims-unit">mm</div>
+      </div>
+      ${adjBadge}
+      <div class="fit-bars" style="margin-top:${adjBadge?'10px':'0'}">${bars.join('')}</div>
+      <div class="card-footer">
+        <div class="vol-badge">Vol: <strong>${vol}</strong></div>
+        <div class="excess-badge ${excessClass}">${excessText || 'Perfetto'}</div>
+      </div>
+    </div>`;
+}
+
+function makeFitBar(axis, needed, has, delta) {
+  const pct = Math.min(100, (needed / Math.max(has, needed)) * 100);
+  const over = delta < 0;
+  const tight = !over && delta < needed * 0.05;
+  const fillClass = over ? 'fit-over' : tight ? 'fit-tight' : 'fit-ok';
+  const numClass = over ? 'over' : tight ? 'tight' : 'ok';
+  const sign = over ? '' : '+';
+  return `
+    <div class="fit-row">
+      <div class="fit-axis">${axis}</div>
+      <div class="fit-track"><div class="fit-fill ${fillClass}" style="width:${pct}%"></div></div>
+      <div class="fit-num ${numClass}">${sign}${delta.toFixed(0)} mm</div>
+    </div>`;
+}
+
+function doNameSearch() {
+  const q = document.getElementById('name-search').value.trim().toLowerCase();
+  const filtered = q ? BOXES.filter(b => b.code.toLowerCase().includes(q) || b.purpose.toLowerCase().includes(q)) : BOXES;
+  const container = document.getElementById('name-results');
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Nessuna scatola trovata</div><div class="empty-sub">Prova con un altro codice o nome</div></div>`;
+    return;
+  }
+
+  const statsBar = `<div class="stats-bar"><div class="stat-pill">Risultati: <strong>${filtered.length}</strong></div><div class="stat-pill">Totale: <strong>${BOXES.length}</strong></div></div>`;
+
+  const rows = filtered.map(b => {
+    const dims = dimStr(b);
+    const adjStr = b.adjustable ? `<span style="color:var(--accent2);font-size:0.72rem">✂ regolabile</span>` : '';
+    return `
+      <div class="name-result-row">
+        <div class="nrr-code">${b.code}</div>
+        <div class="nrr-dims">${dims} mm ${adjStr}</div>
+        <div class="nrr-purpose">${b.purpose || '--'}</div>
+        <div class="nrr-vol">${fmtVol(boxVolume(b))}</div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = statsBar + `<div class="name-results-list">${rows}</div>`;
+}
+
+function renderFullList() {
+  const byFamily = { CP: [], FT: [], SAWP: [] };
+  BOXES.forEach(b => byFamily[getFamily(b.code)].push(b));
+
+  const familyColors = { CP: 'CP', FT: 'FT', SAWP: 'SAWP' };
+  const familyLabels = { CP: 'CP -- ColomPac Standard', FT: 'FT -- Fogli & Vassoi', SAWP: 'SAWP -- Protezione & Ammortizzazione' };
+
+  let html = '';
+  for (const [fam, boxes] of Object.entries(byFamily)) {
+    if (!boxes.length) continue;
+    const items = boxes.map(b => {
+      const dims = dimStr(b);
+      const adjStr = b.adjustable ? `<div class="li-adj">✂ Altezza regolabile: ${b.hMin}–${b.hMax} mm</div>` : '';
+      return `
+        <div class="list-item">
+          <div class="li-code">${b.code}</div>
+          <div class="li-dims">${dims} mm</div>
+          ${adjStr}
+          <div class="li-meta">
+            <div class="li-purpose">${b.purpose || '--'}</div>
+            <div class="li-vol">${fmtVol(boxVolume(b))}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    html += `
+      <div class="family-section">
+        <div class="family-header">
+          <div class="family-badge family-${familyColors[fam]}">${fam}</div>
+          <div style="font-size:0.9rem;font-weight:700">${familyLabels[fam]}</div>
+          <div class="family-count">${boxes.length} modelli</div>
+        </div>
+        <div class="list-grid">${items}</div>
+      </div>`;
+  }
+  document.getElementById('full-list').innerHTML = html;
+}
+
+document.querySelectorAll('#tab-search input[type="number"]').forEach(inp => {
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+  inp.addEventListener('input', () => inp.classList.remove('error-field'));
+});
+
+renderWelcomeStats();
+</script>
+</body>
+</html>
